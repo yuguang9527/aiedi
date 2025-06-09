@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
     "@anthropic-ai/sdk": "^0.53.0",
     "@tiptap/extension-bubble-menu": "^2.14.0",
     "@tiptap/pm": "^2.14.0",
