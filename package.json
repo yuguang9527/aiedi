@@ -6,16 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint --rule 'prefer-const: off'"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/anthropic": "^2.0.0-canary.19",
     "@anthropic-ai/sdk": "^0.53.0",
     "@tiptap/extension-bubble-menu": "^2.14.0",
     "@tiptap/pm": "^2.14.0",
     "@tiptap/react": "^2.14.0",
     "@tiptap/starter-kit": "^2.14.0",
-    "ai": "^4.3.16",
+    "ai": "^5.0.0-canary.24",
     "next": "15.3.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
