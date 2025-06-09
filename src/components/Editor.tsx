@@ -59,10 +59,10 @@ const Editor = () => {
     };
     
     const processBuffer = () => {
-        let boundary = buffer.lastIndexOf('\n');
+        const boundary = buffer.lastIndexOf('\n');
         if (boundary === -1) return;
 
-        let processable = buffer.substring(0, boundary);
+        const processable = buffer.substring(0, boundary);
         buffer = buffer.substring(boundary + 1);
 
         const lines = processable.split('\n');
