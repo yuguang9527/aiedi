@@ -8,17 +8,37 @@ import { useCallback, useEffect } from 'react'
 const SAVE_KEY = 'my-notion-ai-content';
 
 interface EditorProps {
-  onChat?: (userContent: string, aiContent: string) => void;
+  addMessage: (role: 'user' | 'ai', content: string) => void;
+  updateLastMessage: (content: string) => void;
 }
 
-const Editor = ({ onChat }: EditorProps) => {
+const getAiThinkingMessage = (action: string): string => {
+  switch (action) {
+    case 'Expand':
+      return "Okay, I'll expand on the selected text, keeping the original tone and meaning.";
+    case 'Summarize':
+      return "Got it. I'll provide a concise summary of the selected text.";
+    case 'Continue Writing':
+      return "Let's see... I'll continue writing from where you left off.";
+    case 'Translate to English':
+      return "I'll translate this text into English for you.";
+    case 'Improve Writing':
+      return "I'll work on improving the writing style and clarity of this selection.";
+    case 'Fix Grammar':
+      return "I'll correct any grammatical errors in the selected text.";
+    default:
+      return "I'm processing your request...";
+  }
+}
+
+const Editor = ({ addMessage, updateLastMessage }: EditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
     ],
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none min-h-[150px]',
+        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none min-h-full',
       },
     },
     onUpdate: ({ editor }) => {
@@ -30,11 +50,18 @@ const Editor = ({ onChat }: EditorProps) => {
   const handleAiAction = useCallback(async (action: string, text: string, customPrompt?: string) => {
     if (!editor) return;
 
+    // 1. Add user message
+    const userMessage = customPrompt ? `Custom Prompt: "${customPrompt}" on selected text.` : `Action: ${action}`;
+    addMessage('user', userMessage);
+
+    // 2. Add AI thinking message
+    const thinkingMessage = getAiThinkingMessage(action === 'Custom Prompt...' ? customPrompt || '' : action);
+    addMessage('ai', thinkingMessage);
+
+    // 3. Prepare for streaming AI response
+    addMessage('ai', ''); // Add an empty message to be updated
+
     const { from, to } = editor.state.selection;
-    // 记录用户请求
-    if (onChat) {
-      onChat(customPrompt ? customPrompt : action, '...'); // 先显示用户请求，AI回复稍后补全
-    }
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,16 +78,10 @@ const Editor = ({ onChat }: EditorProps) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    let aiReply = '';
 
     const read = async () => {
       const { done, value } = await reader.read();
       if (done) {
-        if (buffer.length > 0) processBuffer();
-        // 记录AI最终回复
-        if (onChat) {
-          onChat('', aiReply);
-        }
         return;
       }
 
@@ -82,7 +103,7 @@ const Editor = ({ onChat }: EditorProps) => {
                 const textChunk = JSON.parse(line.substring(2));
                 if (typeof textChunk === 'string') {
                     editor.chain().insertContent(textChunk).run();
-                    aiReply += textChunk;
+                    updateLastMessage(textChunk);
                 }
             }
         }
@@ -90,7 +111,7 @@ const Editor = ({ onChat }: EditorProps) => {
 
     await read();
 
-  }, [editor, onChat]);
+  }, [editor, addMessage, updateLastMessage]);
 
   useEffect(() => {
     if (editor) {
@@ -108,7 +129,7 @@ const Editor = ({ onChat }: EditorProps) => {
   }
 
   return (
-    <div className="relative rounded-lg border">
+    <div className="relative rounded-lg border h-full flex flex-col">
       <div className="flex items-center gap-2 p-2 border-b bg-gray-50 dark:bg-gray-800">
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -136,10 +157,12 @@ const Editor = ({ onChat }: EditorProps) => {
         </button>
       </div>
 
-      {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
-        <AiButton editor={editor} onAction={handleAiAction} />
-      </BubbleMenu>}
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-y-auto">
+        {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+          <AiButton editor={editor} onAction={handleAiAction} />
+        </BubbleMenu>}
+        <EditorContent editor={editor} />
+      </div>
     </div>
   )
 }
