@@ -59,7 +59,7 @@ const Editor = ({ onChat }: EditorProps) => {
         if (buffer.length > 0) processBuffer();
         // 记录AI最终回复
         if (onChat) {
-          onChat && onChat('', aiReply);
+          onChat('', aiReply);
         }
         return;
       }
