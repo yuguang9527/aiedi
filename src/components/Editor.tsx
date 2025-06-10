@@ -8,8 +8,11 @@ import { useCallback, useEffect } from 'react'
 const SAVE_KEY = 'my-notion-ai-content';
 
 interface EditorProps {
-  addMessage: (role: 'user' | 'ai', content: string) => void;
+  addMessage: (role: 'user' | 'ai', content: string, type?: 'user' | 'ai-thinking' | 'ai-content') => void;
   updateLastMessage: (content: string) => void;
+  saveSnapshot: (content: string) => void;
+  editorContent: string;
+  setEditorContent: (content: string) => void;
 }
 
 const getAiThinkingMessage = (action: string): string => {
@@ -31,7 +34,7 @@ const getAiThinkingMessage = (action: string): string => {
   }
 }
 
-const Editor = ({ addMessage, updateLastMessage }: EditorProps) => {
+const Editor = ({ addMessage, updateLastMessage, saveSnapshot, editorContent, setEditorContent }: EditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -43,7 +46,9 @@ const Editor = ({ addMessage, updateLastMessage }: EditorProps) => {
     },
     onUpdate: ({ editor }) => {
       localStorage.setItem(SAVE_KEY, editor.getHTML());
+      setEditorContent(editor.getHTML());
     },
+    content: editorContent,
     immediatelyRender: false,
   })
 
@@ -52,14 +57,14 @@ const Editor = ({ addMessage, updateLastMessage }: EditorProps) => {
 
     // 1. Add user message
     const userMessage = customPrompt ? `Custom Prompt: "${customPrompt}" on selected text.` : `Action: ${action}`;
-    addMessage('user', userMessage);
+    addMessage('user', userMessage, 'user');
 
     // 2. Add AI thinking message
     const thinkingMessage = getAiThinkingMessage(action === 'Custom Prompt...' ? customPrompt || '' : action);
-    addMessage('ai', thinkingMessage);
+    addMessage('ai', thinkingMessage, 'ai-thinking');
 
     // 3. Prepare for streaming AI response
-    addMessage('ai', ''); // Add an empty message to be updated
+    addMessage('ai', '', 'ai-content'); // Add an empty message to be updated
 
     const { from, to } = editor.state.selection;
     const response = await fetch('/api/ai', {
@@ -104,6 +109,8 @@ const Editor = ({ addMessage, updateLastMessage }: EditorProps) => {
                 if (typeof textChunk === 'string') {
                     editor.chain().insertContent(textChunk).run();
                     updateLastMessage(textChunk);
+                    // Save snapshot after each AI content chunk (only once at the end)
+                    saveSnapshot(editor.getHTML());
                 }
             }
         }
@@ -111,7 +118,7 @@ const Editor = ({ addMessage, updateLastMessage }: EditorProps) => {
 
     await read();
 
-  }, [editor, addMessage, updateLastMessage]);
+  }, [editor, addMessage, updateLastMessage, saveSnapshot]);
 
   useEffect(() => {
     if (editor) {
