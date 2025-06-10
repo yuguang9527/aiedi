@@ -7,7 +7,11 @@ import { useCallback, useEffect } from 'react'
 
 const SAVE_KEY = 'my-notion-ai-content';
 
-const Editor = () => {
+interface EditorProps {
+  onChat?: (userContent: string, aiContent: string) => void;
+}
+
+const Editor = ({ onChat }: EditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -27,7 +31,10 @@ const Editor = () => {
     if (!editor) return;
 
     const { from, to } = editor.state.selection;
-    
+    // 记录用户请求
+    if (onChat) {
+      onChat(customPrompt ? customPrompt : action, '...'); // 先显示用户请求，AI回复稍后补全
+    }
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -44,17 +51,21 @@ const Editor = () => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let aiReply = '';
 
     const read = async () => {
       const { done, value } = await reader.read();
       if (done) {
         if (buffer.length > 0) processBuffer();
+        // 记录AI最终回复
+        if (onChat) {
+          onChat && onChat('', aiReply);
+        }
         return;
       }
 
       buffer += decoder.decode(value, { stream: true });
       processBuffer();
-      
       await read();
     };
     
@@ -71,6 +82,7 @@ const Editor = () => {
                 const textChunk = JSON.parse(line.substring(2));
                 if (typeof textChunk === 'string') {
                     editor.chain().insertContent(textChunk).run();
+                    aiReply += textChunk;
                 }
             }
         }
@@ -78,7 +90,7 @@ const Editor = () => {
 
     await read();
 
-  }, [editor]);
+  }, [editor, onChat]);
 
   useEffect(() => {
     if (editor) {
