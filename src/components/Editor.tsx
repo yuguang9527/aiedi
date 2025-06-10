@@ -97,6 +97,33 @@ const Editor = () => {
 
   return (
     <div className="relative rounded-lg border">
+      <div className="flex items-center gap-2 p-2 border-b bg-gray-50 dark:bg-gray-800">
+        <button
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+            editor.isActive('bold') ? 'bg-gray-200 dark:bg-gray-700' : ''
+          }`}
+        >
+          Bold
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+            editor.isActive('italic') ? 'bg-gray-200 dark:bg-gray-700' : ''
+          }`}
+        >
+          Italic
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+            editor.isActive('heading', { level: 2 }) ? 'bg-gray-200 dark:bg-gray-700' : ''
+          }`}
+        >
+          Heading
+        </button>
+      </div>
+
       {editor && <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
         <AiButton editor={editor} onAction={handleAiAction} />
       </BubbleMenu>}
